@@ -91,13 +91,18 @@ function logit_render_dashboard()
         'post_type' => 'project',
         'posts_per_page' => 3,
         'post_status' => 'publish',
+        'orderby' => 'date',
+        'order' => 'DESC',
     ]);
 
     $recent_logs = get_posts([
         'post_type' => 'learning_log',
         'posts_per_page' => 3,
         'post_status' => 'publish',
+        'orderby' => 'date',
+        'order' => 'DESC',
     ]);
+
     ?>
 
     <div class="wrap">
@@ -126,11 +131,29 @@ function logit_render_dashboard()
             <h2>Recent Activity</h2>
             <ul>
                 <?php foreach ($recent_projects as $project): ?>
-                    <li>📁 Project: <?php echo esc_html($project->post_title); ?></li>
+                    <li>
+                        📁 Project: <?php echo esc_html($project->post_title); ?>
+                        <small style="color:#666;">
+                            — <?php echo human_time_diff(
+                                get_the_time('U', $project),
+                                current_time('timestamp')
+                            ); ?> ago
+                        </small>
+                    </li>
+
                 <?php endforeach; ?>
 
                 <?php foreach ($recent_logs as $log): ?>
-                    <li>📘 Learning: <?php echo esc_html($log->post_title); ?></li>
+                    <li>
+                        📘 Learning: <?php echo esc_html($log->post_title); ?>
+                        <small style="color:#666;">
+                            — <?php echo human_time_diff(
+                                get_the_time('U', $log),
+                                current_time('timestamp')
+                            ); ?> ago
+                        </small>
+                    </li>
+
                 <?php endforeach; ?>
             </ul>
         </div>
