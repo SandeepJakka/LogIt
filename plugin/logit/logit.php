@@ -25,12 +25,38 @@ function logit_add_admin_menu()
 }
 function logit_render_dashboard()
 {
+
+    $count = wp_count_posts('project');
+    $total_projects = $count ? $count->publish : 0;
+
     ?>
-        <div class="wrap">
-            <h1>LogIt Dashboard</h1>
-            <p>Welcome to LogIt. Your activity will appear here.</p>
-        </div>
-        <?php
+    <div class="wrap">
+        <h1>LogIt Dashboard</h1>
+
+        <h2>Total Projects</h2>
+        <p><?php echo esc_html($total_projects); ?></p>
+    </div>
+    <?php
+}
+
+
+add_action('init', 'logit_register_projects');
+
+function logit_register_projects()
+{
+    register_post_type('project', [
+        'labels' => [
+            'name' => 'Projects',
+            'singular_name' => 'Project',
+            'add_new_item' => 'Add New Project',
+            'edit_item' => 'Edit Project',
+        ],
+        'public' => false,
+        'show_ui' => true,
+        'menu_icon' => 'dashicons-clipboard',
+        'supports' => ['title', 'editor'],
+        'show_in_rest' => true,
+    ]);
 }
 
 
