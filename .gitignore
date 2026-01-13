@@ -1,0 +1,14 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+
+# WordPress core (DO NOT TRACK)
+wp-admin/
+wp-includes/
+wp-content/uploads/
+
+# Local config
+wp-config.php
