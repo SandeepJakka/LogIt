@@ -9,3 +9,7 @@
 if (!defined('ABSPATH')) {
     exit;
 }
+add_action('admin_notices', function () {
+    echo '<div class="notice notice-success"><p>LogIt plugin is active.</p></div>';
+});
+
