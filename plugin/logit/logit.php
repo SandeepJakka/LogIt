@@ -9,26 +9,34 @@
 if (!defined('ABSPATH')) {
     exit;
 }
+
+/* --------------------------------------------------
+ * ADMIN MENU
+ * -------------------------------------------------- */
 add_action('admin_menu', 'logit_add_admin_menu');
 
 function logit_add_admin_menu()
 {
     add_menu_page(
-        'LogIt Dashboard',   // Page title
-        'LogIt',             // Menu title
-        'manage_options',    // Capability
-        'logit-dashboard',   // Menu slug
-        'logit_render_dashboard', // Callback
-        'dashicons-chart-area',   // Icon
-        25                   // Position
+        'LogIt Dashboard',
+        'LogIt',
+        'manage_options',
+        'logit-dashboard',
+        'logit_render_dashboard',
+        'dashicons-chart-area',
+        25
     );
 }
+
+/* --------------------------------------------------
+ * DASHBOARD PAGE
+ * -------------------------------------------------- */
 function logit_render_dashboard()
 {
 
     // Total projects
-    $count = wp_count_posts('project');
-    $total_projects = $count ? $count->publish : 0;
+    $project_count = wp_count_posts('project');
+    $total_projects = $project_count ? $project_count->publish : 0;
 
     // Active projects
     $active_projects = new WP_Query([
@@ -38,6 +46,11 @@ function logit_render_dashboard()
         'posts_per_page' => -1,
     ]);
 
+    // Learning logs count
+    $log_count = wp_count_posts('learning_log');
+    $total_logs = $log_count ? $log_count->publish : 0;
+
+    // Recent activity
     $recent_projects = get_posts([
         'post_type' => 'project',
         'posts_per_page' => 3,
@@ -49,46 +62,51 @@ function logit_render_dashboard()
         'posts_per_page' => 3,
         'post_status' => 'publish',
     ]);
-
-    // Learning logs
-    $logs_count = wp_count_posts('learning_log');
-    $total_logs = $logs_count ? $logs_count->publish : 0;
-
     ?>
+
     <div class="wrap">
         <h1>LogIt Dashboard</h1>
 
-        <h2>Total Projects</h2>
-        <p><?php echo esc_html($total_projects); ?></p>
+        <!-- Metric Cards -->
+        <div class="logit-cards">
+            <div class="logit-card">
+                <h3>Total Projects</h3>
+                <p><?php echo esc_html($total_projects); ?></p>
+            </div>
 
-        <h2>Active Projects</h2>
-        <p><?php echo esc_html($active_projects->found_posts); ?></p>
+            <div class="logit-card">
+                <h3>Active Projects</h3>
+                <p><?php echo esc_html($active_projects->found_posts); ?></p>
+            </div>
 
-        <h2>Learning Logs</h2>
-        <p><?php echo esc_html($total_logs); ?></p>
-        <h2>Recent Activity</h2>
+            <div class="logit-card">
+                <h3>Learning Logs</h3>
+                <p><?php echo esc_html($total_logs); ?></p>
+            </div>
+        </div>
 
-        <ul>
-            <?php foreach ($recent_projects as $project): ?>
-                <li>
-                    📁 Project: <?php echo esc_html($project->post_title); ?>
-                </li>
-            <?php endforeach; ?>
+        <!-- Recent Activity -->
+        <div class="logit-section">
+            <h2>Recent Activity</h2>
+            <ul>
+                <?php foreach ($recent_projects as $project): ?>
+                    <li>📁 Project: <?php echo esc_html($project->post_title); ?></li>
+                <?php endforeach; ?>
 
-            <?php foreach ($recent_logs as $log): ?>
-                <li>
-                    📘 Learning: <?php echo esc_html($log->post_title); ?>
-                </li>
-            <?php endforeach; ?>
-        </ul>
-
+                <?php foreach ($recent_logs as $log): ?>
+                    <li>📘 Learning: <?php echo esc_html($log->post_title); ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
     </div>
+
     <?php
+    wp_reset_postdata();
 }
 
-
-
-
+/* --------------------------------------------------
+ * PROJECTS (CPT)
+ * -------------------------------------------------- */
 add_action('init', 'logit_register_projects');
 
 function logit_register_projects()
@@ -108,6 +126,9 @@ function logit_register_projects()
     ]);
 }
 
+/* --------------------------------------------------
+ * PROJECT STATUS META
+ * -------------------------------------------------- */
 add_action('add_meta_boxes', 'logit_add_project_status_box');
 
 function logit_add_project_status_box()
@@ -137,7 +158,6 @@ add_action('save_post_project', 'logit_save_project_status');
 
 function logit_save_project_status($post_id)
 {
-
     if (!isset($_POST['logit_project_status'])) {
         return;
     }
@@ -149,6 +169,9 @@ function logit_save_project_status($post_id)
     );
 }
 
+/* --------------------------------------------------
+ * LEARNING LOGS (CPT)
+ * -------------------------------------------------- */
 add_action('init', 'logit_register_learning_logs');
 
 function logit_register_learning_logs()
