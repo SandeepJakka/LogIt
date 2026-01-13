@@ -38,6 +38,18 @@ function logit_render_dashboard()
         'posts_per_page' => -1,
     ]);
 
+    $recent_projects = get_posts([
+        'post_type' => 'project',
+        'posts_per_page' => 3,
+        'post_status' => 'publish',
+    ]);
+
+    $recent_logs = get_posts([
+        'post_type' => 'learning_log',
+        'posts_per_page' => 3,
+        'post_status' => 'publish',
+    ]);
+
     // Learning logs
     $logs_count = wp_count_posts('learning_log');
     $total_logs = $logs_count ? $logs_count->publish : 0;
@@ -54,6 +66,22 @@ function logit_render_dashboard()
 
         <h2>Learning Logs</h2>
         <p><?php echo esc_html($total_logs); ?></p>
+        <h2>Recent Activity</h2>
+
+        <ul>
+            <?php foreach ($recent_projects as $project): ?>
+                <li>
+                    📁 Project: <?php echo esc_html($project->post_title); ?>
+                </li>
+            <?php endforeach; ?>
+
+            <?php foreach ($recent_logs as $log): ?>
+                <li>
+                    📘 Learning: <?php echo esc_html($log->post_title); ?>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+
     </div>
     <?php
 }
