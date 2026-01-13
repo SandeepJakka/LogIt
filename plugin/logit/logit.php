@@ -38,6 +38,10 @@ function logit_render_dashboard()
         'posts_per_page' => -1,
     ]);
 
+    // Learning logs
+    $logs_count = wp_count_posts('learning_log');
+    $total_logs = $logs_count ? $logs_count->publish : 0;
+
     ?>
     <div class="wrap">
         <h1>LogIt Dashboard</h1>
@@ -47,9 +51,13 @@ function logit_render_dashboard()
 
         <h2>Active Projects</h2>
         <p><?php echo esc_html($active_projects->found_posts); ?></p>
+
+        <h2>Learning Logs</h2>
+        <p><?php echo esc_html($total_logs); ?></p>
     </div>
     <?php
 }
+
 
 
 
@@ -111,4 +119,23 @@ function logit_save_project_status($post_id)
         '_logit_status',
         sanitize_text_field($_POST['logit_project_status'])
     );
+}
+
+add_action('init', 'logit_register_learning_logs');
+
+function logit_register_learning_logs()
+{
+    register_post_type('learning_log', [
+        'labels' => [
+            'name' => 'Learning Logs',
+            'singular_name' => 'Learning Log',
+            'add_new_item' => 'Add Learning Log',
+            'edit_item' => 'Edit Learning Log',
+        ],
+        'public' => false,
+        'show_ui' => true,
+        'menu_icon' => 'dashicons-welcome-learn-more',
+        'supports' => ['title', 'editor'],
+        'show_in_rest' => true,
+    ]);
 }
