@@ -28,6 +28,42 @@ function logit_add_admin_menu()
     );
 }
 
+add_action('admin_enqueue_scripts', 'logit_admin_styles');
+
+function logit_admin_styles()
+{
+    wp_add_inline_style(
+        'wp-admin',
+        '
+        .logit-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .logit-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+
+        .logit-card h3 {
+            margin-top: 0;
+        }
+
+        .logit-section {
+            margin-top: 40px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        '
+    );
+}
+
+
 /* --------------------------------------------------
  * DASHBOARD PAGE
  * -------------------------------------------------- */
