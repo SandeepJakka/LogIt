@@ -22,7 +22,7 @@ Developers often:
 
 A live interactive prototype of LogIt is available here:
 
-👉 https://mvpmodel.netlify.app
+👉 https://logitmvp.netlify.app
 
 This prototype was built to:
 - Validate user flows and navigation
