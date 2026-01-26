@@ -505,9 +505,9 @@ function logit_register_activity()
 /* --------------------------------------------------
  * LOG ACTIVITY ON TASK CREATION
  * -------------------------------------------------- */
-add_action('save_post', 'logit_log_task_created', 10, 3);
+add_action('transition_post_status', 'logit_log_task_created', 10, 3);
 
-function logit_log_task_created($post_id, $post, $update)
+function logit_log_task_created($new_status, $old_status, $post)
 {
 
     // Only for tasks
@@ -515,21 +515,16 @@ function logit_log_task_created($post_id, $post, $update)
         return;
     }
 
-    // Prevent autosave
-    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+    // Only when first published
+    if ($old_status === 'publish' || $new_status !== 'publish') {
         return;
     }
 
-    // Only on first creation
-    if ($update === true) {
-        return;
-    }
-
-    // Prevent duplicates
+    // Prevent duplicate activity
     $existing = get_posts([
         'post_type' => 'activity',
         'meta_key' => '_logit_related_task_id',
-        'meta_value' => $post_id,
+        'meta_value' => $post->ID,
         'posts_per_page' => 1,
     ]);
 
@@ -543,8 +538,61 @@ function logit_log_task_created($post_id, $post, $update)
         'post_status' => 'publish',
         'post_title' => 'Task created: ' . $post->post_title,
         'meta_input' => [
-            '_logit_related_task_id' => $post_id,
+            '_logit_related_task_id' => $post->ID,
             '_logit_activity_type' => 'task_created',
         ],
     ]);
 }
+add_action('updated_post_meta', 'logit_log_task_completed', 10, 4);
+
+function logit_log_task_completed($meta_id, $post_id, $meta_key, $meta_value)
+{
+
+    // Only watch task status changes
+    if ($meta_key !== '_logit_task_status') {
+        return;
+    }
+
+    // Only for tasks
+    if (get_post_type($post_id) !== 'task') {
+        return;
+    }
+
+    // Only when status becomes completed
+    if ($meta_value !== 'completed') {
+        return;
+    }
+
+    // Prevent duplicate "completed" activity
+    $existing = get_posts([
+        'post_type' => 'activity',
+        'meta_query' => [
+            [
+                'key' => '_logit_related_task_id',
+                'value' => $post_id,
+            ],
+            [
+                'key' => '_logit_activity_type',
+                'value' => 'task_completed',
+            ],
+        ],
+        'posts_per_page' => 1,
+    ]);
+
+    if (!empty($existing)) {
+        return;
+    }
+
+    // Create activity
+    wp_insert_post([
+        'post_type' => 'activity',
+        'post_status' => 'publish',
+        'post_title' => 'Task completed: ' . get_the_title($post_id),
+        'meta_input' => [
+            '_logit_related_task_id' => $post_id,
+            '_logit_activity_type' => 'task_completed',
+        ],
+    ]);
+}
+
+
