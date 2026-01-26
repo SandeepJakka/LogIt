@@ -249,3 +249,302 @@ function logit_register_learning_logs()
         'show_in_rest' => true,
     ]);
 }
+
+/* --------------------------------------------------
+ * TASKS (CPT)
+ * -------------------------------------------------- */
+add_action('init', 'logit_register_tasks');
+
+function logit_register_tasks()
+{
+    register_post_type('task', [
+        'labels' => [
+            'name' => 'Tasks',
+            'singular_name' => 'Task',
+            'add_new_item' => 'Add New Task',
+            'edit_item' => 'Edit Task',
+        ],
+        'public' => false,
+        'show_ui' => true,
+        'menu_icon' => 'dashicons-list-view',
+        'supports' => ['title', 'editor'],
+        'capability_type' => 'post',
+        'show_in_rest' => true,
+    ]);
+}
+
+/* --------------------------------------------------
+ * TASK META BOX
+ * -------------------------------------------------- */
+add_action('add_meta_boxes', 'logit_add_task_meta_box');
+
+function logit_add_task_meta_box()
+{
+    add_meta_box(
+        'logit_task_details',
+        'Task Details',
+        'logit_render_task_meta_box',
+        'task',
+        'normal',
+        'high'
+    );
+}
+
+function logit_render_task_meta_box($post)
+{
+    wp_nonce_field('logit_task_meta_nonce_action', 'logit_task_meta_nonce');
+
+    $priority = get_post_meta($post->ID, '_logit_task_priority', true);
+    $status = get_post_meta($post->ID, '_logit_task_status', true);
+    $due_date = get_post_meta($post->ID, '_logit_task_due_date', true);
+    $linked_project = get_post_meta($post->ID, '_logit_task_linked_project', true);
+
+    $projects = get_posts([
+        'post_type' => 'project',
+        'post_status' => 'publish',
+        'posts_per_page' => -1,
+        'orderby' => 'title',
+        'order' => 'ASC',
+    ]);
+    ?>
+
+    <table class="form-table">
+        <tr>
+            <th><label for="logit_task_priority">Priority</label></th>
+            <td>
+                <select name="logit_task_priority" id="logit_task_priority" style="width:100%;">
+                    <option value="">— Select Priority —</option>
+                    <option value="critical" <?php selected($priority, 'critical'); ?>>Critical</option>
+                    <option value="high" <?php selected($priority, 'high'); ?>>High</option>
+                    <option value="medium" <?php selected($priority, 'medium'); ?>>Medium</option>
+                    <option value="low" <?php selected($priority, 'low'); ?>>Low</option>
+                    <option value="backlog" <?php selected($priority, 'backlog'); ?>>Backlog</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th><label for="logit_task_status">Status</label></th>
+            <td>
+                <select name="logit_task_status" id="logit_task_status" style="width:100%;">
+                    <option value="">— Select Status —</option>
+                    <option value="active" <?php selected($status, 'active'); ?>>Active</option>
+                    <option value="completed" <?php selected($status, 'completed'); ?>>Completed</option>
+                    <option value="archived" <?php selected($status, 'archived'); ?>>Archived</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th><label for="logit_task_due_date">Due Date</label></th>
+            <td>
+                <input type="date" name="logit_task_due_date" id="logit_task_due_date"
+                    value="<?php echo esc_attr($due_date); ?>" style="width:100%;">
+            </td>
+        </tr>
+        <tr>
+            <th><label for="logit_task_linked_project">Linked Project</label></th>
+            <td>
+                <select name="logit_task_linked_project" id="logit_task_linked_project" style="width:100%;">
+                    <option value="">— Select Project —</option>
+                    <?php foreach ($projects as $project): ?>
+                        <option value="<?php echo esc_attr($project->ID); ?>" <?php selected($linked_project, $project->ID); ?>>
+                            <?php echo esc_html($project->post_title); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </td>
+        </tr>
+    </table>
+
+    <?php
+}
+/* --------------------------------------------------
+ * SAVE TASK META
+ * -------------------------------------------------- */
+add_action('save_post_task', 'logit_save_task_meta');
+
+function logit_save_task_meta($post_id)
+{
+    if (!isset($_POST['logit_task_meta_nonce'])) {
+        return;
+    }
+
+    if (!wp_verify_nonce($_POST['logit_task_meta_nonce'], 'logit_task_meta_nonce_action')) {
+        return;
+    }
+
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+        return;
+    }
+
+    if (!current_user_can('edit_post', $post_id)) {
+        return;
+    }
+
+    if (isset($_POST['logit_task_priority'])) {
+        update_post_meta(
+            $post_id,
+            '_logit_task_priority',
+            sanitize_text_field($_POST['logit_task_priority'])
+        );
+    }
+
+    if (isset($_POST['logit_task_status'])) {
+        update_post_meta(
+            $post_id,
+            '_logit_task_status',
+            sanitize_text_field($_POST['logit_task_status'])
+        );
+    }
+
+    if (isset($_POST['logit_task_due_date'])) {
+        update_post_meta(
+            $post_id,
+            '_logit_task_due_date',
+            sanitize_text_field($_POST['logit_task_due_date'])
+        );
+    }
+
+    if (isset($_POST['logit_task_linked_project'])) {
+        update_post_meta(
+            $post_id,
+            '_logit_task_project_id',
+            absint($_POST['logit_task_linked_project'])
+        );
+    }
+}
+/* --------------------------------------------------
+ * TASK ADMIN COLUMNS
+ * -------------------------------------------------- */
+add_filter('manage_task_posts_columns', 'logit_task_columns');
+
+function logit_task_columns($columns)
+{
+    $new_columns = [];
+    foreach ($columns as $key => $value) {
+        $new_columns[$key] = $value;
+        if ($key === 'title') {
+            $new_columns['priority'] = 'Priority';
+            $new_columns['task_status'] = 'Status';
+            $new_columns['due_date'] = 'Due Date';
+            $new_columns['project'] = 'Project';
+        }
+    }
+    return $new_columns;
+}
+
+add_action('manage_task_posts_custom_column', 'logit_task_column_content', 10, 2);
+
+function logit_task_column_content($column, $post_id)
+{
+    switch ($column) {
+        case 'priority':
+            $priority = get_post_meta($post_id, '_logit_task_priority', true);
+            $priority_labels = [
+                'critical' => 'Critical',
+                'high' => 'High',
+                'medium' => 'Medium',
+                'low' => 'Low',
+                'backlog' => 'Backlog',
+            ];
+            echo esc_html($priority_labels[$priority] ?? '—');
+            break;
+
+        case 'task_status':
+            $status = get_post_meta($post_id, '_logit_task_status', true);
+            $status_labels = [
+                'active' => 'Active',
+                'completed' => 'Completed',
+                'archived' => 'Archived',
+            ];
+            echo esc_html($status_labels[$status] ?? '—');
+            break;
+
+        case 'due_date':
+            $due_date = get_post_meta($post_id, '_logit_task_due_date', true);
+            if ($due_date) {
+                echo esc_html(date_i18n(get_option('date_format'), strtotime($due_date)));
+            } else {
+                echo '—';
+            }
+            break;
+
+        case 'project':
+            $project_id = get_post_meta($post_id, '_logit_task_project_id', true);
+            if ($project_id) {
+                $project = get_post($project_id);
+                if ($project && $project->post_status === 'publish') {
+                    echo esc_html($project->post_title);
+                } else {
+                    echo '—';
+                }
+            } else {
+                echo '—';
+            }
+            break;
+    }
+}
+/* --------------------------------------------------
+ * ACTIVITY (CPT)
+ * -------------------------------------------------- */
+add_action('init', 'logit_register_activity');
+
+function logit_register_activity()
+{
+    register_post_type('activity', [
+        'labels' => [
+            'name' => 'Activity',
+            'singular_name' => 'Activity',
+        ],
+        'public' => false,
+        'show_ui' => true,
+        'show_in_menu' => true,
+        'supports' => ['title'],
+        'capability_type' => 'post',
+    ]);
+}
+/* --------------------------------------------------
+ * LOG ACTIVITY ON TASK CREATION
+ * -------------------------------------------------- */
+add_action('save_post', 'logit_log_task_created', 10, 3);
+
+function logit_log_task_created($post_id, $post, $update)
+{
+
+    // Only for tasks
+    if ($post->post_type !== 'task') {
+        return;
+    }
+
+    // Prevent autosave
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+        return;
+    }
+
+    // Only on first creation
+    if ($update === true) {
+        return;
+    }
+
+    // Prevent duplicates
+    $existing = get_posts([
+        'post_type' => 'activity',
+        'meta_key' => '_logit_related_task_id',
+        'meta_value' => $post_id,
+        'posts_per_page' => 1,
+    ]);
+
+    if (!empty($existing)) {
+        return;
+    }
+
+    // Create activity
+    wp_insert_post([
+        'post_type' => 'activity',
+        'post_status' => 'publish',
+        'post_title' => 'Task created: ' . $post->post_title,
+        'meta_input' => [
+            '_logit_related_task_id' => $post_id,
+            '_logit_activity_type' => 'task_created',
+        ],
+    ]);
+}
